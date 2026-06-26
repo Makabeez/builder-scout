@@ -1,0 +1,8 @@
+.env
+.env.tester
+venv/
+__pycache__/
+*.pyc
+*.b64
+*.gz.b64
+.DS_Store
