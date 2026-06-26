@@ -30,7 +30,7 @@
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
 
 </div>
-
+<img src="demo.svg" alt="Live paid call on CROO" width="700"/>
 ---
 
 > **The pitch:** Builder Scout scores a BNB Chain *deployer wallet's* reputation. Give it a wallet, and it finds that wallet's recent contract deployments and **pays the [PulseBNB Agent](https://github.com/Makabeez/pulsebnb-croo) to classify each one** — then aggregates the verdicts into a deployer score: real builder, mixed, or noise deployer.
