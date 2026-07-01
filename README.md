@@ -17,51 +17,52 @@
     <animate attributeName="opacity" values="1;0;1" dur="2.4s" repeatCount="indefinite"/>
   </circle>
   <circle cx="90" cy="90" r="6" fill="#22c55e"/>
-  <text x="158" y="76" font-family="'Courier New', monospace" font-size="36" font-weight="800" fill="url(#grn)">BNB Builder Scout</text>
-  <text x="160" y="110" font-family="'Courier New', monospace" font-size="15" fill="#bdbdbd">A CROO agent that scores a deployer wallet's reputation —</text>
-  <text x="160" y="134" font-family="'Courier New', monospace" font-size="15" fill="#bdbdbd">by paying another agent to classify its deployments.</text>
+  <text x="158" y="76" font-family="'Courier New', monospace" font-size="34" font-weight="800" fill="url(#grn)">BNB Builder Scout</text>
+  <text x="160" y="110" font-family="'Courier New', monospace" font-size="15" fill="#bdbdbd">Composable reputation, built agent-to-agent.</text>
+  <text x="160" y="134" font-family="'Courier New', monospace" font-size="15" fill="#7a7a7a">Pays another agent to grade a deployer's work. Returns a portable score.</text>
 </svg>
 
 <br/>
 
-[![CROO Agent Protocol](https://img.shields.io/badge/Built_on-CROO_CAP-22c55e?style=for-the-badge)](https://cap.croo.network)
-[![A2A](https://img.shields.io/badge/Agent_to_Agent-Calls_PulseBNB-8b5cf6?style=for-the-badge)](https://github.com/Makabeez/pulsebnb-croo)
-[![Settlement](https://img.shields.io/badge/Settles-USDC_on_Base-0052FF?style=for-the-badge&logo=coinbase&logoColor=white)](https://base.org)
+[![Built on CROO CAP](https://img.shields.io/badge/Built_on-CROO_CAP-22c55e?style=for-the-badge)](https://cap.croo.network)
+[![Agent to Agent](https://img.shields.io/badge/Agent_to_Agent-Pays_PulseBNB-8b5cf6?style=for-the-badge)](https://github.com/Makabeez/pulsebnb-croo)
+[![Settles USDC on Base](https://img.shields.io/badge/Settles-USDC_on_Base-0052FF?style=for-the-badge&logo=coinbase&logoColor=white)](https://base.org)
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
 
-</div>
 <img src="demo.svg" alt="Live paid call on CROO" width="700"/>
+
+</div>
+
 ---
 
-> **The pitch:** Builder Scout scores a BNB Chain *deployer wallet's* reputation. Give it a wallet, and it finds that wallet's recent contract deployments and **pays the [PulseBNB Agent](https://github.com/Makabeez/pulsebnb-croo) to classify each one** — then aggregates the verdicts into a deployer score: real builder, mixed, or noise deployer.
+> **The idea:** Reputation is usually a walled garden — every platform computes its own, none of it travels. Builder Scout treats reputation as a *composed service*: give it a deployer wallet, and it **pays [PulseBNB](https://github.com/Makabeez/pulsebnb-croo)** to classify that wallet's real on-chain output, then aggregates the verdicts into a single portable score — real builder, mixed, or noise deployer.
 
-## Why this is agent-to-agent (A2A)
+## Why this is real agent-to-agent composability
 
-Scout is **both a provider and a requester** on the CROO Agent Protocol:
+Scout is **both a provider and a requester** on the CROO Agent Protocol — a genuine dual role on one connection:
 
 - **As a provider:** an end caller pays Scout (USDC) with a deployer wallet to score.
-- **As a requester:** Scout pays the **PulseBNB Agent** (USDC) to classify each of that wallet's deployments.
+- **As a requester:** Scout pays the **PulseBNB Agent** (USDC) to classify each deployment.
 
-That's a real, on-chain agent dependency — Scout cannot do its job without calling another agent. One paid order to Scout fans out into multiple paid sub-orders to PulseBNB, all settled through CAP.
+One paid order to Scout fans out into *multiple paid sub-orders* to a second agent, all settled through CAP. Scout cannot do its job without hiring another agent — this is composition, not a wrapper.
 
 ```
 End caller                 Builder Scout                  PulseBNB Agent
     |                            |                              |
     |-- pay (wallet to score) -->|                              |
-    |                            |-- GET /builder/{wallet} -----|  (find deployments)
-    |                            |                              |
+    |                            |-- look up deployments -------|
     |                            |-- pay + classify contract -->|  (A2A sub-order 1)
     |                            |<------- verdict -------------|
     |                            |-- pay + classify contract -->|  (A2A sub-order 2)
     |                            |<------- verdict -------------|
-    |                            |   aggregate -> deployer score|
-    |<--- deployer reputation ---|                              |
+    |                            |   aggregate -> reputation    |
+    |<--- deployer score --------|                              |
     v                            v                              v
 ```
 
-## What it delivers
+The dual role runs on one CAP WebSocket — Scout distinguishes incoming orders (it serves) from its own outbound sub-orders (it pays) by tracking negotiation IDs.
 
-For a deployer wallet, Scout returns a structured verdict:
+## What it delivers
 
 ```json
 {
@@ -71,21 +72,33 @@ For a deployer wallet, Scout returns a structured verdict:
   "deployments_checked": 3,
   "real_pct": 67,
   "classified": [
-    {"address": "0x...", "verdict": "real", "confidence": 85, "contract_name": "..."}
+    {"address": "0x...", "verdict": "real", "confidence": 85}
   ],
   "source": "BNB Builder Scout (powered by PulseBNB Agent on CROO)"
 }
 ```
 
-The score weights the share of *real* deployments and the average confidence of those real builds — so a wallet that ships original contracts scores high, while a wallet that spams templates scores low.
+The score weights the share of *real* deployments and the average confidence of those builds — a wallet that ships original contracts scores high; a wallet spamming templates scores low.
 
-## How it works
+## 🔗 Verified On-Chain — Base Mainnet
 
-1. **Find deployments** — Scout queries the PulseBNB API (`/builder/{wallet}`) for the wallet's indexed contract deployments. Free, and reuses PulseBNB's own index.
-2. **Classify each (A2A)** — for each deployment, Scout opens a CAP negotiation with the PulseBNB Agent, pays the USDC fee, and receives a real/noise verdict.
-3. **Aggregate** — Scout computes a deployer score from the verdicts and delivers a SCHEMA result to the original caller.
+Scout is live on the CROO Agent Store: **6 orders, 100% completion**, dual-role A2A confirmed. Its companion PulseBNB has settled 11+ orders at 100%. Verify any: `https://basescan.org/tx/<hash>`
 
-The dual role is handled on a single CAP WebSocket connection: Scout distinguishes incoming orders (it serves) from its own outbound sub-orders (it pays) by tracking negotiation IDs.
+| PulseBNB order | Verdict | Delivery tx |
+|---|---|---|
+| `89f94f2b` | real | `0x1b3c7cf3b7b5cf2a6d46100998dea96be32cff43e3e4cf5f19393ccdf262924d` |
+| `b1b21dbb` | real | `0xc0ea24d9f62a8eb65a0e87a7403f854e1aee1181e4a7e0dcb5f4af7e902277d1` |
+| `9237014b` | real | `0x47766d8e693497a4524429d1c9ba21285431468c28818d78f5d73a8dab14a75b` |
+
+### Cross-team A2A
+
+Our project placed real paid orders on other builders' agents (`ours:false`):
+
+| Called | Team | Pay tx |
+|---|---|---|
+| VeriClaim | Artema | `0x254359c28e313555cfd7de8a91aeeeebbf0d1beba183fe20759023cfea39a8a2` |
+| Manga Localizer | abdulmajeed | `0x79608c7c223fd5b3ee7bd3e9719df184e20f52a9dd2467591c503daccab1ae5d` |
+| ZERU | Precious_Noah | `0x99eaa5202e4d9c358efa8bb73ee96f5b0fe57288bef977845b5969064ba8505e` |
 
 ## Tech stack
 
@@ -93,9 +106,8 @@ The dual role is handled on a single CAP WebSocket connection: Scout distinguish
 |---|---|
 | Agent protocol | CROO CAP (`croo-sdk`, Python) — dual role |
 | Downstream agent | [PulseBNB Agent](https://github.com/Makabeez/pulsebnb-croo) (paid sub-calls) |
-| Deployment index | PulseBNB API (`/builder/{wallet}`) |
 | Settlement | USDC on Base |
-| Runtime | Python 3.12 async |
+| Runtime | Python 3.12 async, 24/7 |
 
 ## Run it
 
@@ -104,14 +116,13 @@ git clone https://github.com/Makabeez/builder-scout.git
 cd builder-scout
 python3 -m venv venv && source venv/bin/activate
 pip install croo-sdk httpx python-dotenv
-
 cp .env.example .env   # add CROO_SDK_KEY + PULSEBNB_SERVICE_ID
-python3 builder_scout.py   # agent goes online, scores wallets on paid orders
+python3 builder_scout.py
 ```
 
 ## Built for
 
-**[CROO Agent Hackathon](https://campaigns.croo.network/hackathon.html)** — a companion agent to [PulseBNB](https://github.com/Makabeez/pulsebnb-croo), demonstrating agent-to-agent composability: one agent paying another to compose a higher-order service.
+**CROO Agent Hackathon** — a companion to [PulseBNB](https://github.com/Makabeez/pulsebnb-croo). Together they form a composable two-agent system: signal (PulseBNB) → reputation (Scout), one agent paying another to build a higher-order service.
 
 ## License
 
